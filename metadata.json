@@ -1,0 +1,6 @@
+{
+  "name": "Vibe",
+  "description": "Personal playlist curation, ambient soundscapes, and movie tracking matched by vibes and mood aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
