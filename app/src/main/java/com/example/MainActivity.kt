@@ -161,7 +161,6 @@ class MainActivity : ComponentActivity() {
                                 VibeTab.KARAOKE -> KaraokeTab(viewModel = viewModel)
                                 VibeTab.THEATRE -> TheatreTab(viewModel = viewModel)
                                 VibeTab.REELS -> ReelsTab(viewModel = viewModel)
-                                VibeTab.STUDY -> StudyTab(viewModel = viewModel)
                                 VibeTab.STORE -> MerchTab(viewModel = viewModel)
                                 VibeTab.SHOP -> VinylTab(viewModel = viewModel)
                             }

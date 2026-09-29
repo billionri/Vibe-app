@@ -5,14 +5,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.VibeDataDefaults
 import com.example.model.Coupon
+import com.example.model.DailyGoal
+import com.example.model.DailyHabit
+import com.example.model.DayPlannerBlock
+import com.example.model.DayTask
 import com.example.model.KaraokeRecording
 import com.example.model.MerchProduct
 import com.example.model.ReelItem
 import com.example.model.StoreMovie
 import com.example.model.StudySession
+import com.example.model.TaskCategory
+import com.example.model.TaskPriority
 import com.example.model.TheatrePlan
 import com.example.model.TrackItem
 import com.example.model.VinylRecord
+import com.example.audio.AmbientSoundPlayer
+import com.example.audio.AmbientSoundType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +32,6 @@ enum class VibeTab(val id: String, val label: String, val emoji: String) {
     KARAOKE("karaoke", "Karaoke", "🎤"),
     THEATRE("theatre", "Theatre", "🎭"),
     REELS("reels", "Shorts", "📱"),
-    STUDY("study", "Lo-Fi", "📚"),
     STORE("store", "Merch", "🛒"),
     SHOP("shop", "Vinyl", "🛍️")
 }
@@ -137,7 +144,39 @@ class VibeAppViewModel : ViewModel() {
     private val _reels = MutableStateFlow<List<ReelItem>>(VibeDataDefaults.SAMPLE_REELS)
     val reels: StateFlow<List<ReelItem>> = _reels.asStateFlow()
 
-    // --- LO-FI STUDY ROOM STATE ---
+    // --- FOCUS, DAY-TO-DAY TASKS & PLANNING STATE ---
+    private val _tasks = MutableStateFlow<List<DayTask>>(VibeDataDefaults.DEFAULT_TASKS)
+    val tasks: StateFlow<List<DayTask>> = _tasks.asStateFlow()
+
+    private val _activeFocusTask = MutableStateFlow<DayTask?>(VibeDataDefaults.DEFAULT_TASKS.firstOrNull { !it.isCompleted })
+    val activeFocusTask: StateFlow<DayTask?> = _activeFocusTask.asStateFlow()
+
+    private val _selectedTaskFilterCategory = MutableStateFlow(TaskCategory.ALL)
+    val selectedTaskFilterCategory: StateFlow<TaskCategory> = _selectedTaskFilterCategory.asStateFlow()
+
+    private val _plannerBlocks = MutableStateFlow<List<DayPlannerBlock>>(VibeDataDefaults.DEFAULT_PLANNER_BLOCKS)
+    val plannerBlocks: StateFlow<List<DayPlannerBlock>> = _plannerBlocks.asStateFlow()
+
+    private val _dailyGoals = MutableStateFlow<List<DailyGoal>>(VibeDataDefaults.DEFAULT_DAILY_GOALS)
+    val dailyGoals: StateFlow<List<DailyGoal>> = _dailyGoals.asStateFlow()
+
+    private val _dailyHabits = MutableStateFlow<List<DailyHabit>>(VibeDataDefaults.DEFAULT_DAILY_HABITS)
+    val dailyHabits: StateFlow<List<DailyHabit>> = _dailyHabits.asStateFlow()
+
+    private val _focusPresetMinutes = MutableStateFlow(25)
+    val focusPresetMinutes: StateFlow<Int> = _focusPresetMinutes.asStateFlow()
+
+    private val _focusAtmosphere = MutableStateFlow("Rainy Tokyo")
+    val focusAtmosphere: StateFlow<String> = _focusAtmosphere.asStateFlow()
+
+    private val ambientPlayer = AmbientSoundPlayer()
+
+    private val _isAmbientSoundPlaying = MutableStateFlow(false)
+    val isAmbientSoundPlaying: StateFlow<Boolean> = _isAmbientSoundPlaying.asStateFlow()
+
+    private val _ambientVolume = MutableStateFlow(0.6f)
+    val ambientVolume: StateFlow<Float> = _ambientVolume.asStateFlow()
+
     private val _isStudyTimerRunning = MutableStateFlow(false)
     val isStudyTimerRunning: StateFlow<Boolean> = _isStudyTimerRunning.asStateFlow()
 
@@ -368,7 +407,187 @@ class VibeAppViewModel : ViewModel() {
         triggerToast("Removed plan")
     }
 
-    // Study Room Timer
+    // --- FOCUS, DAY TASKS & PLANNER ACTIONS ---
+    fun setFocusPreset(mins: Int) {
+        _focusPresetMinutes.value = mins
+        if (!_isStudyTimerRunning.value) {
+            _studySecondsRemaining.value = mins * 60
+        }
+        triggerToast("Timer set to $mins mins")
+    }
+
+    fun selectTaskToFocus(task: DayTask?) {
+        _activeFocusTask.value = task
+        if (task != null) {
+            triggerToast("🎯 Focusing on: ${task.title}")
+        }
+    }
+
+    fun startFocusForTask(task: DayTask, mins: Int = 25) {
+        _activeFocusTask.value = task
+        _focusPresetMinutes.value = mins
+        _studySecondsRemaining.value = mins * 60
+        if (!_isStudyTimerRunning.value) {
+            toggleStudyTimer()
+        }
+        triggerToast("🚀 Started $mins-min sprint on: ${task.title}")
+    }
+
+    fun toggleTask(taskId: String) {
+        var completedNow = false
+        _tasks.value = _tasks.value.map { task ->
+            if (task.id == taskId) {
+                val newState = !task.isCompleted
+                completedNow = newState
+                task.copy(isCompleted = newState)
+            } else {
+                task
+            }
+        }
+        triggerToast(if (completedNow) "✅ Task completed! Keep going." else "Task marked as active")
+    }
+
+    fun addNewTask(
+        title: String,
+        category: TaskCategory = TaskCategory.DAY_TO_DAY,
+        priority: TaskPriority = TaskPriority.MEDIUM,
+        scheduledTime: String = "Today",
+        estimatedMins: Int = 25,
+        notes: String = ""
+    ) {
+        if (title.isBlank()) return
+        val newTask = DayTask(
+            id = "task_${System.currentTimeMillis()}",
+            title = title.trim(),
+            category = category,
+            priority = priority,
+            scheduledTime = scheduledTime.ifBlank { "Today" },
+            estimatedMinutes = if (estimatedMins <= 0) 25 else estimatedMins,
+            notes = notes.trim()
+        )
+        _tasks.value = listOf(newTask) + _tasks.value
+        triggerToast("📝 Added task to ${category.displayName}")
+    }
+
+    fun deleteTask(taskId: String) {
+        _tasks.value = _tasks.value.filter { it.id != taskId }
+        if (_activeFocusTask.value?.id == taskId) {
+            _activeFocusTask.value = null
+        }
+        triggerToast("Task deleted")
+    }
+
+    fun filterTasks(category: TaskCategory) {
+        _selectedTaskFilterCategory.value = category
+    }
+
+    // Daily Goals
+    fun toggleGoal(goalId: String) {
+        var achievedNow = false
+        _dailyGoals.value = _dailyGoals.value.map { goal ->
+            if (goal.id == goalId) {
+                val newState = !goal.isAchieved
+                achievedNow = newState
+                goal.copy(isAchieved = newState)
+            } else {
+                goal
+            }
+        }
+        triggerToast(if (achievedNow) "🌟 Daily priority achieved!" else "Priority unchecked")
+    }
+
+    fun addNewGoal(title: String) {
+        if (title.isBlank()) return
+        val newGoal = DailyGoal(
+            id = "goal_${System.currentTimeMillis()}",
+            title = title.trim()
+        )
+        _dailyGoals.value = _dailyGoals.value + newGoal
+        triggerToast("🎯 Added daily focus intention")
+    }
+
+    fun deleteGoal(goalId: String) {
+        _dailyGoals.value = _dailyGoals.value.filter { it.id != goalId }
+    }
+
+    // Habits
+    fun toggleHabit(habitId: String) {
+        _dailyHabits.value = _dailyHabits.value.map { habit ->
+            if (habit.id == habitId) {
+                val newDone = !habit.isDoneToday
+                val newStreak = if (newDone) habit.streak + 1 else (habit.streak - 1).coerceAtLeast(0)
+                habit.copy(isDoneToday = newDone, streak = newStreak)
+            } else {
+                habit
+            }
+        }
+        triggerToast("🔥 Habit streak updated!")
+    }
+
+    fun addNewHabit(title: String, emoji: String = "⚡") {
+        if (title.isBlank()) return
+        val newHabit = DailyHabit(
+            id = "habit_${System.currentTimeMillis()}",
+            title = title.trim(),
+            emoji = emoji.ifBlank { "⚡" },
+            streak = 1,
+            isDoneToday = false
+        )
+        _dailyHabits.value = _dailyHabits.value + newHabit
+        triggerToast("🌱 New daily habit added")
+    }
+
+    // Day Planner Time-Blocks
+    fun togglePlannerBlock(blockId: String) {
+        _plannerBlocks.value = _plannerBlocks.value.map { block ->
+            if (block.id == blockId) {
+                block.copy(isCompleted = !block.isCompleted)
+            } else {
+                block
+            }
+        }
+        triggerToast("Schedule block updated")
+    }
+
+    fun addNewPlannerBlock(period: String, title: String, desc: String, emoji: String) {
+        if (title.isBlank()) return
+        val newBlock = DayPlannerBlock(
+            id = "block_${System.currentTimeMillis()}",
+            period = period.ifBlank { "Custom Block" },
+            title = title.trim(),
+            tasksDescription = desc.trim(),
+            iconEmoji = emoji.ifBlank { "🗓️" }
+        )
+        _plannerBlocks.value = _plannerBlocks.value + newBlock
+        triggerToast("🗓️ Added schedule block to day plan")
+    }
+
+    fun deletePlannerBlock(blockId: String) {
+        _plannerBlocks.value = _plannerBlocks.value.filter { it.id != blockId }
+        triggerToast("Schedule block removed")
+    }
+
+    // Ambient Soundscape
+    fun toggleAmbientSound(soundType: AmbientSoundType? = null) {
+        if (_isAmbientSoundPlaying.value && (soundType == null || ambientPlayer.currentSound == soundType)) {
+            ambientPlayer.stop()
+            _isAmbientSoundPlaying.value = false
+            triggerToast("Ambient sound paused")
+        } else {
+            val targetSound = soundType ?: AmbientSoundType.RAIN
+            ambientPlayer.play(targetSound, viewModelScope)
+            _isAmbientSoundPlaying.value = true
+            _focusAtmosphere.value = targetSound.title
+            triggerToast("Playing ${targetSound.emoji} ${targetSound.title}")
+        }
+    }
+
+    fun setAmbientVolume(vol: Float) {
+        _ambientVolume.value = vol
+        ambientPlayer.volume = vol
+    }
+
+    // Focus Timer
     fun toggleStudyTimer() {
         if (_isStudyTimerRunning.value) {
             studyTimer?.cancel()
@@ -376,6 +595,8 @@ class VibeAppViewModel : ViewModel() {
         } else {
             _isStudyTimerRunning.value = true
             val millis = _studySecondsRemaining.value * 1000L
+            val sessionMinutes = _focusPresetMinutes.value
+
             studyTimer = object : CountDownTimer(millis, 1000) {
                 override fun onTick(millisUntilFinished: Long) {
                     _studySecondsRemaining.value = (millisUntilFinished / 1000).toInt()
@@ -383,9 +604,21 @@ class VibeAppViewModel : ViewModel() {
 
                 override fun onFinish() {
                     _isStudyTimerRunning.value = false
-                    _totalStudyMinutes.value += 25
-                    _studySecondsRemaining.value = 25 * 60
-                    triggerToast("✨ Great focus session completed! +25 mins added.")
+                    _totalStudyMinutes.value += sessionMinutes
+                    _studySecondsRemaining.value = sessionMinutes * 60
+
+                    // If active focus task, log time
+                    _activeFocusTask.value?.let { activeTask ->
+                        _tasks.value = _tasks.value.map { t ->
+                            if (t.id == activeTask.id) {
+                                t.copy(completedMinutes = t.completedMinutes + sessionMinutes)
+                            } else {
+                                t
+                            }
+                        }
+                    }
+
+                    triggerToast("🎉 Focus sprint finished! +$sessionMinutes mins logged.")
                 }
             }.start()
         }
@@ -394,7 +627,7 @@ class VibeAppViewModel : ViewModel() {
     fun resetStudyTimer() {
         studyTimer?.cancel()
         _isStudyTimerRunning.value = false
-        _studySecondsRemaining.value = 25 * 60
+        _studySecondsRemaining.value = _focusPresetMinutes.value * 60
     }
 
     fun triggerToast(msg: String) {
@@ -408,5 +641,6 @@ class VibeAppViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         studyTimer?.cancel()
+        ambientPlayer.stop()
     }
 }

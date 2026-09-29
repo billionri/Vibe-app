@@ -54,8 +54,62 @@ data class ReelItem(
 data class StudySession(
     val id: String,
     val title: String,
+    val category: TaskCategory = TaskCategory.DAY_TO_DAY,
     val minutesCompleted: Int,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+enum class TaskCategory(val displayName: String, val emoji: String) {
+    ALL("All", "⚡"),
+    DAY_TO_DAY("Daily Tasks", "☀️"),
+    WORK("Work & Projects", "💼"),
+    PLANNING("Planning", "🗓️"),
+    STUDY("Study & Learn", "📚"),
+    CHORES("Chores & Home", "🧹"),
+    HEALTH("Health & Habits", "🌱"),
+    CREATIVE("Creative", "🎨")
+}
+
+enum class TaskPriority(val label: String, val colorHex: Long) {
+    HIGH("High", 0xFFEF4444),
+    MEDIUM("Med", 0xFFF59E0B),
+    LOW("Low", 0xFF10B981)
+}
+
+data class DayTask(
+    val id: String,
+    val title: String,
+    val category: TaskCategory = TaskCategory.DAY_TO_DAY,
+    val priority: TaskPriority = TaskPriority.MEDIUM,
+    val isCompleted: Boolean = false,
+    val scheduledTime: String = "Today",
+    val estimatedMinutes: Int = 25,
+    val completedMinutes: Int = 0,
+    val notes: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class DayPlannerBlock(
+    val id: String,
+    val period: String,
+    val title: String,
+    val tasksDescription: String,
+    val isCompleted: Boolean = false,
+    val iconEmoji: String = "🌅"
+)
+
+data class DailyGoal(
+    val id: String,
+    val title: String,
+    val isAchieved: Boolean = false
+)
+
+data class DailyHabit(
+    val id: String,
+    val title: String,
+    val emoji: String,
+    val streak: Int = 3,
+    val isDoneToday: Boolean = false
 )
 
 data class MerchProduct(

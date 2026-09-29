@@ -181,4 +181,122 @@ object VibeDataDefaults {
         Coupon(code = "MOVIEBUFF", discount = "₹100 CASHBACK", desc = "Movie Theatre watch party snack pass voucher"),
         Coupon(code = "VINYLVIP", discount = "FREE SHIPPING", desc = "Free doorstep delivery on any vinyl record")
     )
+
+    val DEFAULT_TASKS = listOf(
+        com.example.model.DayTask(
+            id = "t1",
+            title = "Daily Planning & Set Top 3 Priorities",
+            category = com.example.model.TaskCategory.PLANNING,
+            priority = com.example.model.TaskPriority.HIGH,
+            isCompleted = true,
+            scheduledTime = "08:30 AM",
+            estimatedMinutes = 15,
+            completedMinutes = 15,
+            notes = "Outline morning deep work focus and afternoon errands"
+        ),
+        com.example.model.DayTask(
+            id = "t2",
+            title = "Deep Focus: Complete Core Project Deliverable",
+            category = com.example.model.TaskCategory.WORK,
+            priority = com.example.model.TaskPriority.HIGH,
+            isCompleted = false,
+            scheduledTime = "09:30 AM",
+            estimatedMinutes = 50,
+            completedMinutes = 25,
+            notes = "No multitasking, airplane mode on notifications"
+        ),
+        com.example.model.DayTask(
+            id = "t3",
+            title = "Study & Technical Skill Reading",
+            category = com.example.model.TaskCategory.STUDY,
+            priority = com.example.model.TaskPriority.MEDIUM,
+            isCompleted = false,
+            scheduledTime = "02:00 PM",
+            estimatedMinutes = 30,
+            completedMinutes = 0,
+            notes = "Review chapter notes and highlight actionable takeaways"
+        ),
+        com.example.model.DayTask(
+            id = "t4",
+            title = "Inbox Zero & Team Status Updates",
+            category = com.example.model.TaskCategory.DAY_TO_DAY,
+            priority = com.example.model.TaskPriority.MEDIUM,
+            isCompleted = false,
+            scheduledTime = "04:00 PM",
+            estimatedMinutes = 20,
+            completedMinutes = 0,
+            notes = "Clear pending replies and file attachments"
+        ),
+        com.example.model.DayTask(
+            id = "t5",
+            title = "Home Chores: Restock groceries & clean workspace",
+            category = com.example.model.TaskCategory.CHORES,
+            priority = com.example.model.TaskPriority.LOW,
+            isCompleted = false,
+            scheduledTime = "06:30 PM",
+            estimatedMinutes = 25,
+            completedMinutes = 0,
+            notes = "Wipe desk, organize cables, grab fresh fruits"
+        ),
+        com.example.model.DayTask(
+            id = "t6",
+            title = "Evening Wind-Down & Tomorrow's Roadmap",
+            category = com.example.model.TaskCategory.PLANNING,
+            priority = com.example.model.TaskPriority.MEDIUM,
+            isCompleted = false,
+            scheduledTime = "09:30 PM",
+            estimatedMinutes = 15,
+            completedMinutes = 0,
+            notes = "Check calendar schedule and journal daily wins"
+        )
+    )
+
+    val DEFAULT_PLANNER_BLOCKS = listOf(
+        com.example.model.DayPlannerBlock(
+            id = "b1",
+            period = "Morning (08:00 AM - 12:00 PM)",
+            title = "High Energy & Deep Focus Sprint",
+            tasksDescription = "Priority work blocks, cognitive tasks, and creative output.",
+            isCompleted = true,
+            iconEmoji = "🌅"
+        ),
+        com.example.model.DayPlannerBlock(
+            id = "b2",
+            period = "Afternoon (01:00 PM - 05:00 PM)",
+            title = "Execution, Study & Collaborations",
+            tasksDescription = "Communication, studies, quick task sprints & follow-ups.",
+            isCompleted = false,
+            iconEmoji = "☀️"
+        ),
+        com.example.model.DayPlannerBlock(
+            id = "b3",
+            period = "Evening (06:00 PM - 09:00 PM)",
+            title = "Personal Tasks, Chores & Wellness",
+            tasksDescription = "Workout or walk, household errands, cooking & relaxing dinner.",
+            isCompleted = false,
+            iconEmoji = "🌆"
+        ),
+        com.example.model.DayPlannerBlock(
+            id = "b4",
+            period = "Night (09:00 PM - 10:30 PM)",
+            title = "Wind-Down, Reading & Tomorrow Planning",
+            tasksDescription = "Screen-off prep, review day's achievements & set tomorrow's top 3.",
+            isCompleted = false,
+            iconEmoji = "🌙"
+        )
+    )
+
+    val DEFAULT_DAILY_GOALS = listOf(
+        com.example.model.DailyGoal("g1", "Complete deep work session before lunch", isAchieved = true),
+        com.example.model.DailyGoal("g2", "Check off all high-priority day-to-day tasks", isAchieved = false),
+        com.example.model.DailyGoal("g3", "Plan tomorrow's schedule before 10 PM", isAchieved = false)
+    )
+
+    val DEFAULT_DAILY_HABITS = listOf(
+        com.example.model.DailyHabit("h1", "Morning Planning & Prioritization", "🗓️", streak = 6, isDoneToday = true),
+        com.example.model.DailyHabit("h2", "Hydration Target (2.5L Water)", "💧", streak = 14, isDoneToday = true),
+        com.example.model.DailyHabit("h3", "Daily Movement / 30m Walk", "🚶", streak = 5, isDoneToday = false),
+        com.example.model.DailyHabit("h4", "Deep Focus Sprint (45+ mins)", "🎯", streak = 9, isDoneToday = true),
+        com.example.model.DailyHabit("h5", "Evening Reflection & Gratitude", "✍️", streak = 4, isDoneToday = false)
+    )
 }
